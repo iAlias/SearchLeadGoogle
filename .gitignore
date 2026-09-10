@@ -9,3 +9,5 @@ prisma/dev.db-journal
 .wwebjs_cache
 .DS_Store
 tsconfig.tsbuildinfo
+.preview/
+public/preview/

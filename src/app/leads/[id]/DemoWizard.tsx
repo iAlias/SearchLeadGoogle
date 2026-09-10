@@ -5,6 +5,7 @@ import {
   DEMO_STYLES,
   DEMO_SECTIONS,
   CATEGORY_PRIMARY,
+  CATEGORY_THEME,
   shortenSiteTitle,
   type DemoStyleKey,
 } from "@/lib/demoOptions";
@@ -30,7 +31,10 @@ export default function DemoWizard({ leadId, leadName, category, saved, onClose,
   const catKey = (category in CATEGORY_PRIMARY ? category : "generico") as Category;
   const defaultColor = CATEGORY_PRIMARY[catKey];
 
-  const [style, setStyle] = useState<DemoStyleKey>(saved?.style || "standard");
+  // Il tema consigliato per la categoria, se non ce n'è uno salvato valido
+  // (una scelta fatta con un tema che non esiste più ricade qui).
+  const savedStyleValid = saved?.style && DEMO_STYLES.some((s) => s.key === saved.style) ? saved.style : undefined;
+  const [style, setStyle] = useState<DemoStyleKey>(savedStyleValid || CATEGORY_THEME[catKey]);
   const [siteTitle, setSiteTitle] = useState(saved?.siteTitle || leadName);
   const [menuMode, setMenuMode] = useState<"completo" | "solo-contatti">(saved?.menuMode || "completo");
   const [primaryColor, setPrimaryColor] = useState(saved?.primaryColor || defaultColor);

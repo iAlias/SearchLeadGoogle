@@ -5,27 +5,11 @@
 
 import type { Category } from "./types";
 
-export type DemoStyleKey = "standard" | "moderno" | "bilanciato" | "editoriale" | "vivace";
-
-// Colore primario di partenza per categoria, da proporre nel wizard come
-// suggerimento già coerente col resto della demo (che poi l'utente può
-// cambiare). Duplica solo l'esadecimale "primary" di PALETTES in
-// demoGenerator.ts — tenerli allineati se una palette cambia là, perché
-// questo file resta leggero e senza dipendenze per poter girare anche lato
-// client, dentro il wizard.
-export const CATEGORY_PRIMARY: Record<Category, string> = {
-  ristorante: "#7C2D12",
-  bar: "#5B3A29",
-  negozio: "#1E3A5F",
-  parrucchiere: "#3D2C4A",
-  estetista: "#9D5C63",
-  sanitario: "#2F6F62",
-  studio_tecnico: "#1F3A4D",
-  veterinario: "#3D6B4F",
-  officina: "#1F2937",
-  hotel: "#234E52",
-  generico: "#334155",
-};
+// Cinque identità visive, non cinque varianti dello stesso motore: ognuna ha
+// la sua palette, la sua tipografia e le sue meccaniche di scroll. Le
+// descrizioni e le mappature qui sotto sono la specifica ricevuta com'è,
+// categoria per categoria — non un adattamento libero.
+export type DemoStyleKey = "svizzero" | "clinico" | "industriale" | "fotografico" | "boutique";
 
 export interface DemoStyleDef {
   key: DemoStyleKey;
@@ -33,18 +17,73 @@ export interface DemoStyleDef {
   description: string;
 }
 
-// Standard e Moderno sono i due estremi chiesti esplicitamente: fermo contro
-// pieno di movimento. Bilanciato sta in mezzo. Editoriale e Vivace sono le
-// due aggiunte: la prima per chi vende credibilità (studi tecnici, sanitari:
-// lo diceva anche lo studio di mercato — "qui l'eleganza è credibilità"), la
-// seconda per chi vende energia (ristoranti, bar, estetisti, parrucchieri).
 export const DEMO_STYLES: DemoStyleDef[] = [
-  { key: "standard", label: "Standard", description: "Pulito e diretto: un piccolo effetto di comparsa allo scroll, niente di più. La scelta giusta quando il contenuto deve parlare da solo." },
-  { key: "moderno", label: "Moderno", description: "Transizioni ampie, immagini che scalano, sfondo che si muove con lo scroll. L'effetto \"wow\" al primo sguardo." },
-  { key: "bilanciato", label: "Bilanciato", description: "Via di mezzo: movimento visibile ma misurato, senza appesantire la lettura." },
-  { key: "editoriale", label: "Editoriale", description: "Tipografia grande, spazi ampi, quasi nessuna animazione. Per chi vende fiducia più che entusiasmo." },
-  { key: "vivace", label: "Vivace", description: "Colori decisi, forme arrotondate, piccoli rimbalzi sui pulsanti. Per un'attività che vuole trasmettere energia." },
+  { key: "svizzero", label: "Svizzero cobalto", description: "Cobalto, inchiostro e giallo zolfo. Rigore editoriale, sezioni che si bloccano e si trasformano con lo scroll. Comunica competenza e ordine — studi tecnici, legali, consulenti." },
+  { key: "clinico", label: "Clinico caldo", description: "Neutri caldi, verde salvia o terracotta, angoli morbidi, molto respiro. Animazioni minime e lente: calma, non spettacolo. Prenotazione sempre a vista — sanitari, veterinari, toelettature." },
+  { key: "industriale", label: "Industriale alto contrasto", description: "Nero pieno, un accento saturo, condensato maiuscolo, tagli diagonali. Ticker in movimento, numeri grandi, energia immediata — artigiani, palestre, scuole." },
+  { key: "fotografico", label: "Editoriale fotografico", description: "La foto è il contenuto: hero a schermo pieno, zoom lentissimo, serif su fondo scuro. Serve poco testo e foto buone — ristoranti, pizzerie, B&B, agriturismi." },
+  { key: "boutique", label: "Boutique minimale", description: "Crema o nero opaco, un solo accento metallico, tanto vuoto, ritmo rallentato. Testo che sale una riga alla volta — barbieri, estetisti, nail bar." },
 ];
+
+// Lo schema funzionale è la forma dei contenuti — cosa viene messo in
+// evidenza e perché — e dipende dalla categoria del lead, non dal tema
+// visivo scelto: un ambulatorio veterinario resta "da prenotare" anche se
+// gli si applica per prova la veste fotografica dei ristoranti. Il tema
+// scelto nel wizard decide solo come questo schema viene vestito.
+export type SchemaKey = "prenota" | "chiama" | "guarda" | "consulenza";
+
+export const CATEGORY_SCHEMA: Record<Category, SchemaKey> = {
+  sanitario: "prenota",
+  veterinario: "prenota",
+  estetista: "prenota",
+  parrucchiere: "prenota",
+  officina: "chiama",
+  ristorante: "guarda",
+  bar: "guarda",
+  hotel: "guarda",
+  studio_tecnico: "consulenza",
+  negozio: "consulenza",
+  generico: "consulenza",
+};
+
+// Il tema consigliato per ogni categoria — quello con cui il wizard si apre
+// di default, restando comunque libero di sceglierne un altro. Copre le
+// otto categorie della specifica ricevuta; negozio e generico (che non
+// comparivano nella specifica) prendono il tema più vicino nello spirito.
+export const CATEGORY_THEME: Record<Category, DemoStyleKey> = {
+  studio_tecnico: "svizzero",
+  sanitario: "clinico",
+  veterinario: "clinico",
+  officina: "industriale",
+  ristorante: "fotografico",
+  hotel: "fotografico",
+  bar: "fotografico",
+  parrucchiere: "boutique",
+  estetista: "boutique",
+  negozio: "boutique",
+  generico: "svizzero",
+};
+
+// Colore d'accento di partenza per categoria, da proporre nel wizard come
+// suggerimento già coerente col resto della demo (che poi l'utente può
+// cambiare). Ogni tema lo reinterpreta a modo suo: sostituisce il cobalto
+// nello Svizzero, il salvia/terracotta nel Clinico, l'accento saturo
+// nell'Industriale, l'oro nel Boutique; nel Fotografico non guida la
+// palette (che resta scura per lasciar parlare le foto) ma colora comunque
+// i pulsanti di invito.
+export const CATEGORY_PRIMARY: Record<Category, string> = {
+  ristorante: "#7C2D12",
+  bar: "#5B3A29",
+  negozio: "#8A6D3B",
+  parrucchiere: "#8A6D3B",
+  estetista: "#8A6D3B",
+  sanitario: "#6E8F5C",
+  studio_tecnico: "#1B3FE0",
+  veterinario: "#B0662E",
+  officina: "#E8B400",
+  hotel: "#7C2D12",
+  generico: "#1B3FE0",
+};
 
 export interface DemoSectionDef {
   key: string;
