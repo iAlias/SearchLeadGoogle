@@ -21,7 +21,14 @@ const PALETTES: Record<Category, Palette> = {
   negozio: { primary: "#1E3A5F", deep: "#13263F", bg: "#F6F8FB", bg2: "#E8EEF5", ink: "#1A2332", accent: "#C2410C", serif: "Georgia,serif" },
   parrucchiere: { primary: "#3D2C4A", deep: "#281C32", bg: "#FAF7FB", bg2: "#EFE8F2", ink: "#241A2C", accent: "#B08968", serif: "Georgia,serif" },
   estetista: { primary: "#9D5C63", deep: "#7A444A", bg: "#FCF6F5", bg2: "#F6E8E7", ink: "#3A2528", accent: "#C99CA0", serif: "Georgia,serif" },
-  studio_professionale: { primary: "#1F3A4D", deep: "#142836", bg: "#F5F8FA", bg2: "#E6EEF2", ink: "#16242E", accent: "#2C7A7B", serif: "Georgia,serif" },
+  // Verde salvia calmo, non il blu-clinico da ospedale: rassicura senza essere freddo.
+  sanitario: { primary: "#2F6F62", deep: "#1F4A40", bg: "#F6FAF8", bg2: "#E7F1EC", ink: "#1B2E29", accent: "#C9A227", serif: "Georgia,serif" },
+  // Stessa palette di prima (era "studio_professionale"): sobria, poco satura,
+  // perche' qui l'eleganza e' credibilita', non attrattiva.
+  studio_tecnico: { primary: "#1F3A4D", deep: "#142836", bg: "#F5F8FA", bg2: "#E6EEF2", ink: "#16242E", accent: "#2C7A7B", serif: "Georgia,serif" },
+  // Verde bosco caldo con accento ambra: l'accento serve a far risaltare la
+  // chiamata per le urgenze, il dato che conta di piu' per questa categoria.
+  veterinario: { primary: "#3D6B4F", deep: "#294A36", bg: "#F7FAF5", bg2: "#E9F1E4", ink: "#223424", accent: "#D9772E", serif: "Georgia,serif" },
   officina: { primary: "#1F2937", deep: "#111827", bg: "#F4F5F7", bg2: "#E5E7EB", ink: "#111827", accent: "#EA580C", serif: "system-ui,sans-serif" },
   hotel: { primary: "#234E52", deep: "#163438", bg: "#F4F9F8", bg2: "#E2F0EE", ink: "#16292B", accent: "#B7791F", serif: "Georgia,serif" },
   generico: { primary: "#334155", deep: "#1E293B", bg: "#F6F7F9", bg2: "#E8EBEF", ink: "#1E293B", accent: "#0369A1", serif: "Georgia,serif" },
@@ -66,6 +73,12 @@ export function generateDemoHtml(input: DemoInput): string {
   const waBusinessHref = wa
     ? `https://wa.me/${wa}?text=${encodeURIComponent(`Buongiorno ${input.name}, vorrei informazioni`)}`
     : "";
+
+  // Per un veterinario, in un'emergenza si chiama, non si scrive. Diamo
+  // priorita' alla telefonata solo se il numero c'e' davvero: nessuna
+  // promessa di reperibilita' che non conosciamo, solo il dato reale messo
+  // nel punto giusto.
+  const phoneFirst = input.category === "veterinario" && !!tel;
 
   const sellerHref = sellerWa
     ? `https://wa.me/${sellerWa}?text=${encodeURIComponent(`Ciao! Ho visto la demo del sito per ${input.name}, mi interessa`)}`
@@ -207,11 +220,13 @@ export function generateDemoHtml(input: DemoInput): string {
       ${reviewsHtml ? '<a href="#recensioni">Recensioni</a>' : ""}
     </nav>
     ${
-      waBusinessHref
-        ? `<a class="btn" href="${waBusinessHref}">Contattaci</a>`
-        : tel
-          ? `<a class="btn" href="tel:${tel}">Chiama</a>`
-          : ""
+      phoneFirst
+        ? `<a class="btn" href="tel:${tel}">Chiama ora</a>`
+        : waBusinessHref
+          ? `<a class="btn" href="${waBusinessHref}">Contattaci</a>`
+          : tel
+            ? `<a class="btn" href="tel:${tel}">Chiama</a>`
+            : ""
     }
   </div>
 </header>
@@ -223,11 +238,13 @@ export function generateDemoHtml(input: DemoInput): string {
       <h1>${name}</h1>
       <p>${escapeHtml(input.copy)}</p>
       ${
-        waBusinessHref
-          ? `<a class="btn btn-accent" href="${waBusinessHref}">Scrivici su WhatsApp</a>`
-          : tel
-            ? `<a class="btn btn-accent" href="tel:${tel}">Chiamaci ora</a>`
-            : ""
+        phoneFirst
+          ? `<a class="btn btn-accent" href="tel:${tel}">Chiamaci ora</a>`
+          : waBusinessHref
+            ? `<a class="btn btn-accent" href="${waBusinessHref}">Scrivici su WhatsApp</a>`
+            : tel
+              ? `<a class="btn btn-accent" href="tel:${tel}">Chiamaci ora</a>`
+              : ""
       }
       <div class="hero-meta">
         ${address ? `<span>📍 ${address}</span>` : ""}

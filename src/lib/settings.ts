@@ -1,14 +1,16 @@
 import { prisma } from "./db";
 
+// Sotto le 120 parole di proposito: chi la riceve ne legge dieci al giorno di
+// venditori. L'unica cosa che la distingue e' che parla del loro sito, non
+// del nostro prodotto - per questo il link alla demo viene prima del prezzo.
 export const DEFAULT_EMAIL_BODY = `Buongiorno,
 
-ho visto che {{nome}} non ha ancora un sito web aggiornato e ho preparato una demo usando i vostri dati reali (foto, orari, recensioni Google).
+ho preparato una demo del sito di {{nome}}, con i vostri dati reali: foto, orari, recensioni Google. La trova qui, e gia pronta:
+{{demo}}
 
-La trova qui sotto: e gia pronta, posso metterla online sul vostro dominio in 48 ore.
+Se le piace, lo mettiamo online sul vostro dominio in 48 ore. {{prezzo}}.
 
-Un sito cosi: {{prezzo}}.
-
-Mi risponda a questa email o mi scriva su WhatsApp, le mostro tutto senza impegno.
+Se non le interessa, mi risponda "no grazie" e non la disturbo piu.
 
 {{venditore}}`;
 

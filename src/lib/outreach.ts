@@ -5,6 +5,7 @@ import { sendEmail, buildEmailHtml, hasEmailKey } from "./email";
 import { sendWhatsApp, isWaReady } from "./whatsapp";
 import { getSettings, fillTemplate } from "./settings";
 import { makeSlug, jsonParse, normalizePhoneIt } from "./utils";
+import { isSuppressed } from "./suppression";
 import type { Category, Review, OpeningPeriod } from "./types";
 
 type LeadRow = Awaited<ReturnType<typeof prisma.lead.findUniqueOrThrow>>;
@@ -46,7 +47,7 @@ export async function generateDemoForLead(leadId: string): Promise<{ slug: strin
     hours,
     topReviews,
     copy,
-    sellerName: settings.sellerName || "Antonio",
+    sellerName: settings.sellerName || "Chi vi scrive",
     sellerWa: normalizePhoneIt(settings.sellerPhone),
     priceLine: settings.priceLine,
   });
@@ -107,9 +108,20 @@ export async function runOutreach(): Promise<{
 
   for (const lead of toEmail) {
     if (emailBudget <= 0) break;
+
+    // Chi ha chiesto di non essere più contattato non riceve nulla, su
+    // nessun canale: il controllo va fatto qui, appena prima di inviare,
+    // non solo in fase di importazione della lista.
+    if (await isSuppressed(lead.email, "email")) {
+      await prisma.lead.update({ where: { id: lead.id }, data: { status: "skipped", outcome: "disiscritto" } });
+      skipped++;
+      continue;
+    }
+
     try {
       const slug = await ensureDemo(lead);
       const demoUrl = `${appUrl()}/demo/${slug}`;
+      const unsubscribeUrl = `${appUrl()}/api/unsubscribe?e=${encodeURIComponent(lead.email!)}`;
       const body = fillTemplate(settings.emailBody, {
         nome: lead.name,
         demo: demoUrl,
@@ -128,8 +140,8 @@ export async function runOutreach(): Promise<{
         to: lead.email!,
         from: settings.emailFrom || process.env.EMAIL_FROM || "onboarding@resend.dev",
         subject,
-        html: buildEmailHtml(body, demoUrl),
-        text: body + "\n\n" + demoUrl,
+        html: buildEmailHtml(body, demoUrl, unsubscribeUrl),
+        text: body + "\n\n" + demoUrl + "\n\nPer non ricevere più email: " + unsubscribeUrl,
       });
       if (res.ok) {
         await prisma.lead.update({
@@ -171,6 +183,15 @@ export async function runOutreach(): Promise<{
 
     for (const lead of toWa) {
       if (waBudget <= 0) break;
+
+      // Stessa regola dell'email: la disiscrizione vale su entrambi i canali,
+      // sennò chi si toglie dall'email si ritrova comunque scritto su WhatsApp.
+      if (await isSuppressed(lead.phoneWa, "whatsapp") || (await isSuppressed(lead.email, "email"))) {
+        await prisma.lead.update({ where: { id: lead.id }, data: { status: "skipped", outcome: "disiscritto" } });
+        skipped++;
+        continue;
+      }
+
       try {
         const slug = await ensureDemo(lead);
         const demoUrl = `${appUrl()}/demo/${slug}`;

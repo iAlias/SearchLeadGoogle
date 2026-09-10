@@ -66,17 +66,32 @@ model Lead {
   @@index([status])
 }
 
+// Chi ha chiesto di non essere più contattato. Vale per sempre, su ogni
+// campagna: un indirizzo o un numero che finisce qui non deve più ricevere
+// nulla, nemmeno un follow-up già in coda quando arriva la richiesta.
+model Suppression {
+  id        String   @id @default(cuid())
+  contact   String   @unique // email in minuscolo, o numero normalizzato 39xxxxxxxxxx
+  channel   String   // email | whatsapp
+  reason    String   @default("richiesta") // richiesta | rifiuto | bounce
+  createdAt DateTime @default(now())
+}
+
 model Settings {
   id            String   @id @default("singleton")
-  sellerName    String   @default("Antonio")
+  // Vuoto e non "Antonio": un nome finto lasciato per sbaglio nell'email
+  // manderebbe un messaggio firmato da chi non esiste.
+  sellerName    String   @default("")
   sellerPhone   String   @default("")
   emailFrom     String   @default("")
   emailSubject  String   @default("Ho preparato il sito di {{nome}} - guarda qui")
   emailBody     String   @default("")
   waBody        String   @default("")
-  dailyEmailMax Int      @default(50)
+  // 10-15 al giorno: sopra questa soglia un dominio nuovo finisce in
+  // blacklist, e brucia l'indirizzo per sempre.
+  dailyEmailMax Int      @default(12)
   dailyWaMax    Int      @default(20)
-  waFollowupDays Int     @default(3)
-  priceLine     String   @default("350 euro una tantum + 12 euro/mese")
+  waFollowupDays Int     @default(4)
+  priceLine     String   @default("149 euro")
   updatedAt     DateTime @updatedAt
 }

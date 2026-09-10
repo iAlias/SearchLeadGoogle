@@ -6,7 +6,9 @@ export type Category =
   | "negozio"
   | "parrucchiere"
   | "estetista"
-  | "studio_professionale"
+  | "sanitario" // fisioterapisti, psicologi, nutrizionisti, osteopati, dentisti, logopedisti, podologi
+  | "studio_tecnico" // avvocati, commercialisti, geometri, architetti, notai, consulenti
+  | "veterinario"
   | "officina"
   | "hotel"
   | "generico";

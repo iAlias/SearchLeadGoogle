@@ -8,3 +8,4 @@ prisma/dev.db-journal
 .wwebjs_auth
 .wwebjs_cache
 .DS_Store
+tsconfig.tsbuildinfo

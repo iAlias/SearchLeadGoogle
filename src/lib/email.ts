@@ -49,7 +49,9 @@ export async function sendEmail(opts: {
 }
 
 // Costruisce un'email HTML semplice e pulita da testo + link demo.
-export function buildEmailHtml(bodyText: string, demoUrl: string): string {
+// unsubscribeUrl è un link vero, non solo "risponda con STOP": una richiesta
+// di fermarsi non deve dipendere da qualcuno che legga a mano ogni risposta.
+export function buildEmailHtml(bodyText: string, demoUrl: string, unsubscribeUrl?: string): string {
   const paragraphs = bodyText
     .split(/\n{2,}/)
     .map((p) => `<p style="margin:0 0 14px">${escapeForEmail(p).replace(/\n/g, "<br>")}</p>`)
@@ -59,7 +61,8 @@ export function buildEmailHtml(bodyText: string, demoUrl: string): string {
   <p style="margin:22px 0">
     <a href="${demoUrl}" style="display:inline-block;background:#1f3a4d;color:#fff;text-decoration:none;padding:13px 26px;border-radius:8px;font-weight:600">👉 Guarda la demo del sito</a>
   </p>
-  <p style="font-size:12px;color:#9ca3af;margin-top:28px">Non vuole piu ricevere queste email? Risponda con "STOP".</p>
+  <p style="font-size:12px;color:#9ca3af;margin-top:28px">Non vuole più ricevere queste email?
+  ${unsubscribeUrl ? `<a href="${unsubscribeUrl}" style="color:#9ca3af">Clicchi qui</a>` : `Risponda con "STOP"`}.</p>
   </body></html>`;
 }
 

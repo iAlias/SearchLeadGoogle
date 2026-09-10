@@ -10,7 +10,11 @@ const FALLBACK: Record<Category, string> = {
   negozio: "Prodotti selezionati e consigli sinceri da chi conosce il mestiere. Un negozio di fiducia dove qualita e attenzione al cliente vengono prima di tutto.",
   parrucchiere: "Tagli, colore e cura dei capelli con la mano di professionisti che ascoltano. Esperienza, prodotti di qualita e risultati su misura per te.",
   estetista: "Trattamenti di bellezza e benessere in un ambiente curato e rilassante. Professionalita e attenzione ai dettagli per farti sentire al meglio.",
-  studio_professionale: "Competenza e affidabilita al servizio dei clienti. Consulenza chiara, soluzioni concrete e un rapporto basato sulla fiducia.",
+  // Testo neutro e informativo, senza superlativi ne offerte: la pubblicita
+  // sanitaria e regolata dalla legge 145/2018.
+  sanitario: "Visite e trattamenti seguiti con attenzione, in uno studio dove ogni persona viene ascoltata con calma. Prenotazione semplice, per telefono o messaggio.",
+  studio_tecnico: "Consulenza chiara e affidabile, con pratiche seguite passo per passo. Un rapporto di fiducia costruito sulla competenza e sulla disponibilita a spiegare.",
+  veterinario: "Cura e attenzione per ogni animale, dalla visita di controllo alle urgenze. Un ambulatorio dove il benessere del vostro animale viene prima di tutto.",
   officina: "Assistenza e riparazioni con tecnici esperti e preventivi onesti. La tua auto in mani sicure, con tempi rapidi e prezzi trasparenti.",
   hotel: "Ospitalita curata e camere accoglienti per un soggiorno sereno. Posizione comoda, servizi attenti e quel calore che fa la differenza.",
   generico: "Un'attivita del territorio che mette la qualita e il cliente al primo posto, con professionalita e passione di chi fa bene il proprio lavoro.",
