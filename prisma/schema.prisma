@@ -48,6 +48,7 @@ model Lead {
   outreachChannel String    @default("email_and_wa") // email_and_wa | whatsapp_only | email_only | none
   demoSlug        String?   @unique
   demoHtml        String?   // HTML completo della demo, generato
+  demoOptions     String?   // JSON: scelte del wizard (stile, sezioni, titolo, menu, colore)
   demoGeneratedAt DateTime?
 
   status          String    @default("scraped") // scraped | demo_ready | approved | email_sent | wa_sent | replied | won | lost | skipped

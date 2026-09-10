@@ -6,6 +6,7 @@ import { sendWhatsApp, isWaReady } from "./whatsapp";
 import { getSettings, fillTemplate } from "./settings";
 import { makeSlug, jsonParse, normalizePhoneIt } from "./utils";
 import { isSuppressed } from "./suppression";
+import type { DemoStyleKey } from "./demoOptions";
 import type { Category, Review, OpeningPeriod } from "./types";
 
 type LeadRow = Awaited<ReturnType<typeof prisma.lead.findUniqueOrThrow>>;
@@ -14,10 +15,24 @@ function appUrl(): string {
   return (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
 }
 
+// Scelte del wizard di generazione demo. Tutti i campi sono opzionali:
+// quando mancano, la pagina esce come prima che il wizard esistesse.
+export interface WizardDemoOptions {
+  style?: DemoStyleKey;
+  sections?: string[];
+  siteTitle?: string;
+  menuMode?: "completo" | "solo-contatti";
+  primaryColor?: string;
+}
+
 /**
  * Genera (o rigenera) la demo per un lead: testo AI + HTML completo, salva slug+html.
+ * Se `options` è passato (il wizard è stato usato) diventa la nuova scelta
+ * permanente per quel lead, salvata insieme alla demo; se manca, si riusano
+ * le scelte fatte l'ultima volta — o il comportamento di sempre, se non ne
+ * sono mai state fatte.
  */
-export async function generateDemoForLead(leadId: string): Promise<{ slug: string }> {
+export async function generateDemoForLead(leadId: string, options?: WizardDemoOptions): Promise<{ slug: string }> {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) throw new Error("Lead non trovato");
   const settings = await getSettings();
@@ -26,6 +41,7 @@ export async function generateDemoForLead(leadId: string): Promise<{ slug: strin
   const hours = jsonParse<OpeningPeriod[] | null>(lead.hours, null);
   const topReviews = jsonParse<Review[]>(lead.topReviews, []);
   const category = lead.category as Category;
+  const effectiveOptions = options ?? jsonParse<WizardDemoOptions>(lead.demoOptions, {});
 
   const copy = await generateCopy(
     lead.name,
@@ -41,6 +57,7 @@ export async function generateDemoForLead(leadId: string): Promise<{ slug: strin
     city: lead.city,
     address: lead.address,
     phone: lead.phone,
+    placeId: lead.placeId,
     rating: lead.rating,
     reviewCount: lead.reviewCount,
     photos,
@@ -50,6 +67,11 @@ export async function generateDemoForLead(leadId: string): Promise<{ slug: strin
     sellerName: settings.sellerName || "Chi vi scrive",
     sellerWa: normalizePhoneIt(settings.sellerPhone),
     priceLine: settings.priceLine,
+    style: effectiveOptions.style,
+    sections: effectiveOptions.sections,
+    siteTitle: effectiveOptions.siteTitle,
+    menuMode: effectiveOptions.menuMode,
+    primaryColor: effectiveOptions.primaryColor,
   });
 
   await prisma.lead.update({
@@ -57,6 +79,7 @@ export async function generateDemoForLead(leadId: string): Promise<{ slug: strin
     data: {
       demoSlug: slug,
       demoHtml: html,
+      demoOptions: options ? JSON.stringify(options) : lead.demoOptions,
       demoGeneratedAt: new Date(),
       status: lead.status === "scraped" ? "demo_ready" : lead.status,
     },

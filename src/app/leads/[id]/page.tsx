@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import DemoWizard from "./DemoWizard";
 
 interface Lead {
   id: string; name: string; category: string; city?: string | null; address?: string | null;
   phone?: string | null; email?: string | null; emailSource?: string | null;
   website?: string | null; websiteStatus: string; rating?: number | null; reviewCount: number;
-  outreachChannel: string; status: string; demoSlug?: string | null; notes?: string | null;
+  outreachChannel: string; status: string; demoSlug?: string | null; demoOptions?: string | null; notes?: string | null;
   outcome?: string | null;
 }
 
@@ -17,12 +18,19 @@ export default function LeadDetail() {
   const [lead, setLead] = useState<Lead | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [previewBust, setPreviewBust] = useState(0);
 
   const load = useCallback(async () => {
     const data = await fetch(`/api/leads/${id}`).then((r) => r.json());
     setLead(data);
   }, [id]);
   useEffect(() => { load(); }, [load]);
+
+  const savedDemoOptions = useMemo(() => {
+    if (!lead?.demoOptions) return null;
+    try { return JSON.parse(lead.demoOptions); } catch { return null; }
+  }, [lead?.demoOptions]);
 
   async function save(patch: Partial<Lead>) {
     setBusy(true);
@@ -35,20 +43,17 @@ export default function LeadDetail() {
     setBusy(false);
   }
 
-  async function genDemo() {
-    setBusy(true);
-    setMsg("Genero demo…");
-    const r = await fetch(`/api/leads/${id}/demo`, { method: "POST" });
-    const d = await r.json();
-    setMsg(r.ok ? "Demo generata." : d.error || "Errore");
-    await load();
-    setBusy(false);
-  }
-
   async function del() {
     if (!confirm("Eliminare questo lead?")) return;
     await fetch(`/api/leads/${id}`, { method: "DELETE" });
     router.push("/leads");
+  }
+
+  async function onWizardGenerated() {
+    setWizardOpen(false);
+    setMsg("Demo generata.");
+    setPreviewBust((n) => n + 1); // forza l'anteprima a ricaricarsi, anche con lo stesso slug
+    await load();
   }
 
   if (!lead) return <p><span className="spinner" /> Carico…</p>;
@@ -78,7 +83,7 @@ export default function LeadDetail() {
           <div className="panel">
             <h2>Azioni</h2>
             <div className="grid">
-              <button className="btn" disabled={busy} onClick={genDemo}>🎨 {lead.demoSlug ? "Rigenera" : "Genera"} demo</button>
+              <button className="btn" disabled={busy} onClick={() => setWizardOpen(true)}>🎨 {lead.demoSlug ? "Rigenera" : "Genera"} demo…</button>
               {lead.demoSlug && <a className="btn ghost" href={`/demo/${lead.demoSlug}`} target="_blank" rel="noopener">↗ Apri demo</a>}
               {lead.status !== "approved" && <button className="btn green" disabled={busy} onClick={() => save({ status: "approved" })}>✓ Approva per invio</button>}
               <button className="btn ghost" disabled={busy} onClick={() => save({ status: "won", outcome: "won" })}>🎉 Segna come cliente</button>
@@ -96,17 +101,29 @@ export default function LeadDetail() {
         <div className="panel" style={{ padding: 0, overflow: "hidden", position: "sticky", top: 20 }}>
           {lead.demoSlug ? (
             <iframe
-              src={`/demo/${lead.demoSlug}`}
+              key={previewBust}
+              src={`/demo/${lead.demoSlug}?_=${previewBust}`}
               style={{ width: "100%", height: "78vh", border: "none", background: "#fff" }}
               title="Anteprima demo"
             />
           ) : (
             <div style={{ padding: 60, textAlign: "center" }} className="muted">
-              Nessuna demo ancora. Premi &quot;Genera demo&quot; per crearla con i dati di questa attività.
+              Nessuna demo ancora. Premi &quot;Genera demo…&quot; per scegliere stile e sezioni e crearla con i dati di questa attività.
             </div>
           )}
         </div>
       </div>
+
+      {wizardOpen && (
+        <DemoWizard
+          leadId={lead.id}
+          leadName={lead.name}
+          category={lead.category}
+          saved={savedDemoOptions}
+          onClose={() => setWizardOpen(false)}
+          onGenerated={onWizardGenerated}
+        />
+      )}
     </div>
   );
 }
