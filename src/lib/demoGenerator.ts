@@ -1,7 +1,7 @@
 import type { Category, Review, OpeningPeriod } from "./types";
 import { CATEGORY_LABEL } from "./category";
 import { escapeHtml, normalizePhoneIt } from "./utils";
-import { resolveSections, deriveShades, googleReviewsUrl, CATEGORY_PRIMARY, CATEGORY_THEME, DEMO_STYLES, type DemoStyleKey } from "./demoOptions";
+import { resolveSections, deriveShades, googleReviewsUrl, CATEGORY_PRIMARY, CATEGORY_THEME, CATEGORY_SCHEMA, DEMO_STYLES, type DemoStyleKey, type SchemaKey } from "./demoOptions";
 
 // Genera un sito demo completo (HTML standalone, CSS inline, mobile-first)
 // popolato con i dati REALI dell'attivita.
@@ -128,6 +128,7 @@ export function generateDemoHtml(input: DemoInput): string {
     case "industriale": return renderIndustriale(ctx);
     case "fotografico": return renderFotografico(ctx);
     case "boutique": return renderBoutique(ctx);
+    case "innovativo": return renderInnovativo(ctx);
     case "svizzero":
     default: return renderSvizzero(ctx);
   }
@@ -216,6 +217,7 @@ function renderSvizzero(ctx: SharedCtx): string {
 <title>${name}${city ? ` — ${city}` : ""} | Demo sito</title>
 <meta name="description" content="${name}: ${escapeHtml(input.copy).slice(0, 150)}">
 <meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62.5,400..800;125,400..800&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
   :root{--cobalto:${cobalto};--cobalto-deep:${cobaltoDeep};--inchiostro:${inchiostro};--zolfo:${zolfo};--carta:${carta};--wdth:125;--sans:'IBM Plex Mono',ui-monospace,monospace}
@@ -465,6 +467,7 @@ function renderClinico(ctx: SharedCtx): string {
 <title>${name}${city ? ` — ${city}` : ""} | Demo sito</title>
 <meta name="description" content="${name}: ${escapeHtml(input.copy).slice(0, 150)}">
 <meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
 <style>
   :root{--accent:${accent};--accent-deep:${accentDeep};--carta:${carta};--carta2:${carta2};--ink:${ink};--inksoft:${inkSoft};--sans:'Figtree',system-ui,sans-serif}
@@ -644,6 +647,7 @@ function renderIndustriale(ctx: SharedCtx): string {
 <title>${name}${city ? ` — ${city}` : ""} | Demo sito</title>
 <meta name="description" content="${name}: ${escapeHtml(input.copy).slice(0, 150)}">
 <meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
 <style>
   :root{--accent:${accent};--nero:${nero};--bianco:${bianco};--display:'Oswald',system-ui,sans-serif}
@@ -844,6 +848,7 @@ function renderFotografico(ctx: SharedCtx): string {
 <title>${name}${city ? ` — ${city}` : ""} | Demo sito</title>
 <meta name="description" content="${name}: ${escapeHtml(input.copy).slice(0, 150)}">
 <meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500&display=swap">
 <style>
   :root{--accent:${accent};--fondo:${fondo};--carta:${carta};--serif:'Fraunces',Georgia,serif;--sans:'Inter',system-ui,sans-serif}
@@ -1003,6 +1008,7 @@ function renderBoutique(ctx: SharedCtx): string {
 <title>${name}${city ? ` — ${city}` : ""} | Demo sito</title>
 <meta name="description" content="${name}: ${escapeHtml(input.copy).slice(0, 150)}">
 <meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600&family=Inter:wght@400;500&display=swap">
 <style>
   :root{--metallo:${metallo};--crema:${crema};--ink:${ink};--inksoft:${inkSoft};--serif:'Cormorant',Georgia,serif;--sans:'Inter',system-ui,sans-serif}
@@ -1085,6 +1091,515 @@ ${vendBlock}
 <script>
   var io = new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.16});
   document.querySelectorAll('.b-reveal,.b-mask,.b-lineclip').forEach(function(el){io.observe(el);});
+</script>
+</body>
+</html>`;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// 6 · INNOVATIVO — scelta libera nel wizard, non legato a una categoria
+//
+// Tutto pilotato dallo scroll, in JavaScript puro senza librerie:
+// - apertura bloccata a schermo: un titolo enorme in font variabile si
+//   comprime in larghezza mentre le sue righe si separano in orizzontale;
+//   un anello cresce fino a un disco scuro che copre lo schermo e porta
+//   alla sezione dopo; una pioggia di quadratini esplode dal centro;
+// - manifesto che si accende parola per parola in gradiente;
+// - servizi che scorrono in orizzontale come schede inclinate in 3D, che si
+//   raddrizzano quando passano al centro;
+// - galleria che si apre a zoom, una foto dopo l'altra;
+// - contatori che salgono con lo scroll;
+// - una finestra che si spalanca sui contatti;
+// - i passaggi del "come funziona" che si accendono uno dopo l'altro;
+// - un cursore ad anello che segue il mouse.
+// Con prefers-reduced-motion tutto torna a un flusso verticale fermo.
+// ═══════════════════════════════════════════════════════════════════════
+
+// Esempi di percorso per schema funzionale: dichiarati come esempi in pagina,
+// perché non sappiamo come lavora davvero l'attività.
+const X_STEPS: Record<SchemaKey, [string, string][]> = {
+  prenota: [["Ci scrivi o ci chiami", "Su WhatsApp o al telefono, quando ti è comodo."], ["Fissiamo il momento giusto", "Un giorno e un orario che vadano bene a te."], ["Ti aspettiamo", "Arrivi, e al resto pensiamo noi."]],
+  chiama: [["Ci chiami", "Ci racconti cosa succede."], ["Capiamo cosa serve", "Ti spieghiamo come intervenire."], ["Lavoro fatto", "Senza sorprese."]],
+  guarda: [["Scegli", "Guarda cosa proponiamo."], ["Prenota", "Basta un messaggio o una chiamata."], ["Goditela", "Al resto pensiamo noi."]],
+  consulenza: [["Primo contatto", "Ci racconti di cosa hai bisogno."], ["Analisi", "Studiamo il tuo caso."], ["Proposta", "Ti indichiamo la strada più adatta."]],
+};
+
+const X_CTA: Record<SchemaKey, string> = { prenota: "Prenota ora.", chiama: "Chiamaci ora.", guarda: "Vieni a trovarci.", consulenza: "Parliamone." };
+
+// Icone a pixel 3×3 per le schede dei servizi: un bit per quadratino.
+const X_ICONS = [0b101010111, 0b111101010, 0b010111101, 0b110011110, 0b011110011, 0b100111001];
+
+// Divide il nome in al massimo tre righe di lunghezza simile: ogni riga del
+// titolo d'apertura scivola in una direzione diversa con lo scroll.
+function xSplitLines(text: string, max = 3): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const L = words.length;
+  if (L <= 1) return words;
+  const n = Math.min(max, L);
+  const cuts: number[][] = [];
+  if (n === 2) for (let i = 1; i < L; i++) cuts.push([i]);
+  else for (let i = 1; i < L - 1; i++) for (let j = i + 1; j < L; j++) cuts.push([i, j]);
+  let best = [text], bestScore = Infinity;
+  for (const c of cuts) {
+    const b = [0, ...c, L];
+    const lines = b.slice(0, -1).map((s, k) => words.slice(s, b[k + 1]).join(" "));
+    const score = Math.max(...lines.map((l) => l.length)) + (lines.some((l) => /[-–—]$/.test(l)) ? 100 : 0);
+    if (score < bestScore) { bestScore = score; best = lines; }
+  }
+  return best;
+}
+
+function xRgba(hex: string, a: number): string {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+function renderInnovativo(ctx: SharedCtx): string {
+  const { input, name, city, address, label, tel, waBusinessHref, hoursRows, reviewsUrl, reviewsRows, gallery, sections, menuCompleto } = ctx;
+  const blu = input.primaryColor || "#0B5CD9";
+  const ciano = "#00B4F0", ink = "#04111F", carta = "#F3F7FC";
+  const schema = CATEGORY_SCHEMA[input.category];
+  const contatta = contattaHref(ctx);
+  const ctaBtn = contatta ? `<a class="x-btn" href="${contatta.href}">${contatta.label}</a>` : "";
+
+  // Il titolo è dimensionato sulla riga più lunga, così non esce dallo
+  // schermo prima che lo scroll lo faccia scivolare di proposito.
+  const displayName = (input.siteTitle || "").trim() || input.name;
+  const lines = xSplitLines(displayName);
+  const longest = Math.max(1, ...lines.map((l) => l.length));
+  const titleVw = Math.min(11, 108 / longest).toFixed(2);
+  const titleHtml = lines.map((l, i) => `<span class="x-line" data-dir="${i % 2 === 0 ? -1 : 1}">${escapeHtml(l)}</span>`).join("");
+  const finText = X_CTA[schema];
+  const finVw = Math.min(13, 100 / finText.length).toFixed(2);
+
+  const words = input.copy.split(/\s+/).filter(Boolean).map((w) => `<span class="x-w">${escapeHtml(w)}</span>`).join(" ");
+
+  const mf = sections.has("chiSiamo")
+    ? `<section class="x-pin x-tone" id="chi" data-tone="ink" style="height:260vh"><div class="x-stick x-dark"><div class="x-wrap"><p class="x-eyebrow">Chi siamo</p><p class="x-mf">${words}</p><p class="x-mf-by">${name}${city ? ` · ${city}` : ""}</p></div></div></section>`
+    : "";
+
+  const cards = CATEGORY_SERVICES[input.category].map((s, i) => {
+    const bits = X_ICONS[i % X_ICONS.length];
+    const icon = Array.from({ length: 9 }, (_, b) => `<i${bits & (1 << (8 - b)) ? ' class="on"' : ""}></i>`).join("");
+    return `<article class="x-card${i === 0 ? " x-card--main" : ""}"><span class="x-num">${String(i + 1).padStart(2, "0")}</span><div class="x-icon">${icon}</div><h3>${escapeHtml(s)}</h3><span class="x-chip">da personalizzare</span></article>`;
+  }).join("");
+  const sv = sections.has("servizi")
+    ? `<section class="x-pin x-tone" id="servizi" data-tone="carta" style="height:300vh"><div class="x-stick x-sv"><div class="x-wrap x-sv-hd"><p class="x-eyebrow">Servizi</p><h2 class="x-h2">Cosa facciamo</h2><p class="x-note">Esempi tipici della categoria — da sostituire con i servizi reali di ${name}.</p></div><div class="x-track">${cards}</div><div class="x-bar"><i></i></div></div></section>`
+    : "";
+
+  const gal = sections.has("galleria") && gallery.length
+    ? `<section class="x-pin x-tone" id="galleria" data-tone="ink" style="height:${100 + gallery.length * 70}vh"><div class="x-stick x-dark x-gal"><div class="x-gal-stage">${gallery.map((src, i) => `<figure class="x-shot" style="z-index:${i + 1}"><img src="${escapeHtml(src)}" alt="${name}" loading="${i === 0 ? "eager" : "lazy"}" referrerpolicy="no-referrer" onerror="var s=this.closest('.x-pin');this.parentNode.remove();if(s&&!s.querySelector('.x-shot'))s.remove();"></figure>`).join("")}</div><div class="x-gal-cap"><p class="x-eyebrow">Galleria</p><span class="x-gal-count"><b class="x-gal-n">01</b> / <span class="x-gal-t">${String(gallery.length).padStart(2, "0")}</span></span></div></div></section>`
+    : "";
+
+  const num = sections.has("numeri") && input.rating
+    ? `<section class="x-pin x-tone" data-tone="blu" style="height:180vh"><div class="x-stick x-blu"><div class="x-wrap x-stats"><div><span class="x-count" data-target="${input.rating.toFixed(1)}">0</span><span class="x-statlabel">valutazione media su Google</span></div><div><span class="x-count" data-target="${input.reviewCount}">0</span><span class="x-statlabel">recensioni</span></div></div></div></section>`
+    : "";
+
+  const mapLink = address ? `<a class="x-btn x-btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(input.name + " " + (input.address || ""))}" target="_blank" rel="noopener">Apri in Google Maps →</a>` : "";
+  const dove = sections.has("doveContatti") || (sections.has("mappa") && address)
+    ? `<section class="x-winsec" id="dove"><div class="x-window x-tone" data-tone="ink"><div class="x-wrap"><p class="x-eyebrow">Dove e quando</p><h2 class="x-h2 x-addr">${address || "Orari e contatti"}</h2><div class="x-two">${hoursRows && sections.has("doveContatti") ? `<table class="x-hours">${hoursRows}</table>` : ""}<div class="x-contact">${input.phone ? `<p>Tel: <a href="tel:${tel}">${escapeHtml(input.phone)}</a></p>` : ""}${sections.has("mappa") ? mapLink : ""}</div></div></div></div></section>`
+    : "";
+
+  const rec = sections.has("recensioni") && (reviewsRows.length || input.rating)
+    ? `<section class="x-sec x-tone" id="recensioni" data-tone="carta"><div class="x-wrap"><p class="x-eyebrow">Dicono di noi</p><h2 class="x-h2">${input.rating ? `${input.rating.toFixed(1)} su 5 su Google` : "Le recensioni"}</h2>${reviewsRows.length ? `<div class="x-reviews">${reviewsRows.map((r) => `<div class="x-review x-rise"><div class="x-stars">${r.stars}</div><p>${r.text}</p><footer>${r.author}</footer></div>`).join("")}</div>` : ""}<p class="x-rise"><a class="x-link" href="${reviewsUrl}" target="_blank" rel="noopener">Leggi tutte le recensioni su Google →</a></p></div></section>`
+    : "";
+
+  const pr = sections.has("prenota") && (waBusinessHref || tel)
+    ? `<section class="x-pin x-tone" id="prenota" data-tone="ink" style="height:240vh"><div class="x-stick x-dark"><div class="x-wrap x-steps-wrap"><div><p class="x-eyebrow">Come funziona</p><h2 class="x-h2">Tre passi.</h2><p class="x-note">Un esempio di percorso — da adattare al vostro.</p>${ctaBtn}</div><div class="x-steps"><span class="x-steps-line"><i></i></span><ol>${X_STEPS[schema].map(([t, d], i) => `<li class="x-step"><span class="x-dot"></span><b>${String(i + 1).padStart(2, "0")} · ${escapeHtml(t)}</b><span class="x-desc">${escapeHtml(d)}</span></li>`).join("")}</ol></div></div></div></section>`
+    : "";
+
+  const faqRows: [string, string][] = [
+    ["Come posso mettermi in contatto?", waBusinessHref || tel ? `Il modo più rapido è scrivere o chiamare: risponde direttamente ${name}.` : "Trova tutti i recapiti nella sezione contatti."],
+    ["Devo prenotare prima di venire?", "Conviene chiamare o scrivere prima, così si evita di trovare tutto occupato."],
+    ["Dove vi trovo esattamente?", address ? "L'indirizzo è nella sezione dedicata, qui sopra." : "Chieda l'indirizzo esatto scrivendo o chiamando."],
+  ];
+  const faq = sections.has("faq")
+    ? `<section class="x-sec x-tone" id="faq" data-tone="carta"><div class="x-wrap"><p class="x-eyebrow">Domande frequenti</p><h2 class="x-h2">Le domande più comuni</h2><div class="x-faq">${faqRows.map(([q, a]) => `<details class="x-rise"><summary>${q}</summary><p>${a}</p></details>`).join("")}</div></div></section>`
+    : "";
+
+  const fin = sections.has("ctaFinale")
+    ? `<section class="x-pin x-tone x-fin" id="contatti" data-tone="blu" style="height:180vh"><div class="x-stick x-blu"><div class="x-wrap"><h2 class="x-fin-t">${finText}</h2><div class="x-fin-act">${waBusinessHref ? `<a class="x-btn x-btn-light" href="${waBusinessHref}">Scrivici su WhatsApp</a>` : ""}${input.phone ? `<a class="x-link x-link-light" href="tel:${tel}">oppure chiama: ${escapeHtml(input.phone)}</a>` : ""}</div></div></div></section>`
+    : "";
+
+  const nav = menuCompleto
+    ? [mf && '<a href="#chi">Chi siamo</a>', sv && '<a href="#servizi">Servizi</a>', gal && '<a href="#galleria">Galleria</a>', dove && '<a href="#dove">Dove siamo</a>', rec && '<a href="#recensioni">Recensioni</a>'].filter(Boolean).join("")
+    : "";
+
+  const { banner: sellBanner, vend: vendBlock } = sellVend(ctx, { bg: ink, fg: carta, btnBg: ciano, btnFg: ink });
+
+  return `<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${name}${city ? ` — ${city}` : ""} | Demo sito</title>
+<meta name="description" content="${name}: ${escapeHtml(input.copy).slice(0, 150)}">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,400..900&family=Inter:wght@400;500;600&display=swap">
+<style>
+  :root{--blu:${blu};--blu-soft:${xRgba(blu, 0.14)};--ciano:${ciano};--ink:${ink};--carta:${carta};--wdth:125}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{background:var(--carta)}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--carta);color:var(--ink);line-height:1.6;overflow-x:hidden}
+  a{color:inherit}
+  img{display:block;max-width:100%}
+  .x-wrap{max-width:1180px;margin:0 auto;padding:0 6vw;width:100%}
+  .x-eyebrow{font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--blu);margin-bottom:18px}
+  .x-dark .x-eyebrow,.x-blu .x-eyebrow,.x-window .x-eyebrow{color:var(--ciano)}
+  .x-h2,.x-title,.x-fin-t,.x-logo,.x-card h3,.x-mf,.x-step b,.x-count,.x-gal-count{font-family:'Anybody',system-ui,sans-serif}
+  .x-h2{font-size:clamp(2.2rem,5.4vw,4.4rem);font-weight:800;line-height:.98;font-variation-settings:'wdth' 110;margin-bottom:18px}
+  .x-note{font-size:.95rem;opacity:.7;max-width:52ch;margin-bottom:22px}
+  .x-btn{display:inline-block;font-weight:600;font-size:.95rem;text-decoration:none;padding:14px 24px;background:var(--blu);color:#fff;transition:transform .2s ease}
+  .x-btn:hover{transform:translateY(-2px)}
+  .x-btn-ghost{background:transparent;border:1px solid currentColor;color:inherit}
+  .x-btn-light{background:#fff;color:var(--blu)}
+  .x-link{text-decoration:underline;text-underline-offset:3px}
+  .x-link-light{color:#fff}
+
+  /* header: prende il tono della sezione che gli scorre sotto */
+  header.x-head{position:sticky;top:0;z-index:90;color:var(--ink);background:rgba(243,247,252,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:color .35s ease,background-color .35s ease}
+  header.x-head[data-tone="ink"]{color:#fff;background:rgba(4,17,31,.55)}
+  header.x-head[data-tone="blu"]{color:#fff;background:transparent}
+  header.x-head[data-tone="blu"] .x-btn{background:#fff;color:var(--blu)}
+  .x-head-in{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 4vw}
+  .x-logo{font-weight:800;font-size:1.1rem;font-variation-settings:'wdth' 100;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+  .x-head nav{display:flex;gap:22px;font-size:.88rem}
+  .x-head nav a{text-decoration:none;white-space:nowrap}
+  .x-head .x-btn{padding:10px 18px;font-size:.85rem}
+
+  /* sezioni bloccate a schermo */
+  .x-pin{position:relative}
+  .x-stick{position:sticky;top:0;height:100vh;overflow:hidden;display:flex;align-items:center}
+  .x-dark{background:var(--ink);color:#fff}
+  .x-blu{background:var(--blu);color:#fff}
+
+  /* apertura */
+  .x-hero .x-stick{background:var(--carta)}
+  .x-px{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+  .x-ring{position:absolute;top:50%;left:72%;width:min(46vmin,420px);aspect-ratio:1;transform:translate(-50%,-50%);z-index:1;pointer-events:none}
+  .x-ring-o{position:absolute;inset:-9%;border-radius:50%;background:var(--blu-soft)}
+  .x-ring-i{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 200deg,var(--ciano),var(--blu),var(--ciano));-webkit-mask:radial-gradient(farthest-side,transparent 86%,#000 86.5%);mask:radial-gradient(farthest-side,transparent 86%,#000 86.5%)}
+  .x-disc{position:absolute;inset:14%;border-radius:50%;background:var(--ink);transform:scale(0)}
+  .x-hero-in{position:relative;z-index:3;width:100%;padding:0 4vw}
+  .x-hero .x-eyebrow{margin-bottom:22px}
+  .x-title{font-size:min(${titleVw}vw,9.5rem);font-weight:800;line-height:.92;font-variation-settings:'wdth' var(--wdth);display:flex;flex-direction:column;margin-bottom:30px}
+  .x-line{display:block;white-space:nowrap;will-change:transform}
+  .x-line:nth-child(2){padding-left:6vw}
+  .x-line:nth-child(3){padding-left:12vw}
+  .x-hero-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
+  .x-hero-foot p{max-width:46ch;font-size:1.02rem;opacity:.75}
+
+  /* manifesto */
+  .x-mf{font-weight:700;font-size:clamp(1.8rem,4.2vw,3.6rem);line-height:1.12;font-variation-settings:'wdth' 90;max-width:22ch}
+  .x-w{color:rgba(255,255,255,.14);transition:color .35s ease}
+  .x-w.on{background:linear-gradient(90deg,var(--ciano),#9ad9ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .x-mf-by{margin-top:28px;font-size:.9rem;opacity:.6}
+
+  /* servizi in orizzontale, schede inclinate */
+  .x-sv{flex-direction:column;align-items:stretch;justify-content:center;gap:26px;background:var(--carta)}
+  .x-sv-hd{padding-top:48px}
+  .x-track{display:flex;gap:22px;padding:0 6vw;will-change:transform}
+  .x-card{position:relative;flex:0 0 clamp(260px,28vw,400px);height:min(46vh,420px);background:#fff;border:1px solid #dbe4ef;padding:26px;display:flex;flex-direction:column;justify-content:flex-end;gap:12px;will-change:transform}
+  .x-card--main{background:linear-gradient(135deg,var(--blu),var(--ciano));color:#fff;border:0}
+  .x-card h3{font-weight:800;font-size:clamp(1.3rem,2vw,1.8rem);line-height:1.05;font-variation-settings:'wdth' 100}
+  .x-num{position:absolute;top:22px;right:24px;font-size:.8rem;opacity:.6}
+  .x-icon{position:absolute;top:24px;left:26px;display:grid;grid-template-columns:repeat(3,9px);gap:3px}
+  .x-icon i{width:9px;height:9px;background:currentColor;opacity:.12}
+  .x-icon i.on{opacity:1;background:var(--blu)}
+  .x-card--main .x-icon i.on{background:#fff}
+  .x-chip{align-self:flex-start;font-size:.72rem;border:1px solid currentColor;padding:3px 8px;opacity:.7}
+  .x-bar{margin:0 6vw;height:2px;background:#dbe4ef;position:relative}
+  .x-bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--blu)}
+
+  /* galleria a zoom */
+  .x-gal-stage{position:absolute;inset:0}
+  .x-shot{position:absolute;inset:0;overflow:hidden}
+  .x-shot img{width:100%;height:100%;object-fit:cover;will-change:transform}
+  .x-gal-cap{position:absolute;left:4vw;right:4vw;bottom:5vh;z-index:20;display:flex;justify-content:space-between;align-items:flex-end;color:#fff;text-shadow:0 1px 14px rgba(0,0,0,.6)}
+  .x-gal-count{font-weight:800;font-size:1.4rem}
+
+  /* numeri */
+  .x-stats{display:flex;gap:10vw;flex-wrap:wrap}
+  .x-count{display:block;font-weight:800;font-size:clamp(4rem,14vw,11rem);line-height:.9;font-variation-settings:'wdth' 75;font-variant-numeric:tabular-nums}
+  .x-statlabel{display:block;margin-top:12px;font-size:.9rem;opacity:.85}
+
+  /* finestra che si spalanca */
+  .x-winsec{padding:10vh 0;background:var(--carta)}
+  .x-window{background:var(--ink);color:#fff;padding:14vh 0}
+  .x-two{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:10px}
+  .x-hours{border-collapse:collapse;font-size:.95rem}
+  .x-hours td{padding:7px 18px 7px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+  .x-contact p{margin-bottom:18px;font-size:1.05rem}
+  .x-addr{font-size:clamp(1.8rem,3.4vw,3rem);max-width:24ch}
+
+  /* passaggi */
+  .x-steps-wrap{display:grid;grid-template-columns:1fr 1.1fr;gap:6vw;align-items:center}
+  .x-steps{position:relative;padding-left:34px}
+  .x-steps-line{position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:rgba(255,255,255,.12)}
+  .x-steps-line i{position:absolute;left:0;top:0;width:100%;height:0;background:linear-gradient(var(--ciano),var(--blu))}
+  .x-steps ol{list-style:none;display:grid;gap:18px}
+  .x-step{position:relative;padding:18px 20px;border:1px solid rgba(255,255,255,.08);opacity:.35;transition:opacity .4s ease,border-color .4s ease,background-color .4s ease}
+  .x-step b{display:block;font-size:1.15rem;margin-bottom:4px;font-variation-settings:'wdth' 100}
+  .x-desc{font-size:.9rem;opacity:.75}
+  .x-dot{position:absolute;left:-33px;top:22px;width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:var(--ink);transition:all .4s ease}
+  .x-step.on{opacity:1;border-color:var(--ciano);background:rgba(0,180,240,.06)}
+  .x-step.on .x-dot{background:var(--ciano);border-color:var(--ciano);box-shadow:0 0 14px var(--ciano)}
+  .x-step.done{opacity:.8}
+  .x-step.done .x-dot{background:var(--blu);border-color:var(--blu)}
+
+  /* recensioni, domande */
+  .x-sec{padding:16vh 0}
+  .x-reviews{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin:26px 0}
+  .x-review{background:#fff;border:1px solid #dbe4ef;padding:24px}
+  .x-stars{color:var(--blu);letter-spacing:2px;margin-bottom:8px}
+  .x-review footer{font-size:.82rem;opacity:.6;margin-top:10px}
+  .x-faq{display:grid;gap:4px;margin-top:22px}
+  .x-faq details{border-bottom:1px solid #dbe4ef;padding:18px 0}
+  .x-faq summary{cursor:pointer;font-weight:600;font-size:1.05rem;list-style:none}
+  .x-faq summary::-webkit-details-marker{display:none}
+  .x-faq summary::after{content:"+";float:right;color:var(--blu);font-weight:700}
+  .x-faq details[open] summary::after{content:"−"}
+  .x-faq p{margin-top:10px;opacity:.75}
+  .x-rise{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+  .x-rise.in{opacity:1;transform:none}
+
+  /* chiusura */
+  .x-fin-t{font-size:min(${finVw}vw,11rem);font-weight:800;line-height:.95;white-space:nowrap;font-variation-settings:'wdth' var(--fw,125);margin-bottom:34px}
+  .x-fin-act{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+
+  footer.x-foot{background:var(--ink);color:rgba(255,255,255,.7);font-size:.85rem;padding:30px 4vw;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+  /* cursore ad anello, solo con un mouse vero */
+  .x-cursor{position:fixed;left:0;top:0;width:34px;height:34px;margin:-17px 0 0 -17px;border:2px solid var(--blu);border-radius:50%;pointer-events:none;z-index:100;transition:width .25s ease,height .25s ease,margin .25s ease,border-color .3s ease,background-color .25s ease;display:none}
+  .x-cursor.big{width:64px;height:64px;margin:-32px 0 0 -32px;background:rgba(0,180,240,.12)}
+  body[data-tone="ink"] .x-cursor,body[data-tone="blu"] .x-cursor{border-color:var(--ciano)}
+  @media (pointer:fine){.x-cursor{display:block}}
+
+  @media (max-width:820px){
+    .x-head nav{display:none}
+    .x-two,.x-steps-wrap{grid-template-columns:1fr}
+    .x-ring{left:50%;top:66%}
+    .x-line:nth-child(2),.x-line:nth-child(3){padding-left:0}
+  }
+
+  /* Chi ha chiesto meno movimento: niente blocchi a schermo, niente
+     particelle né cursore, tutto già al suo posto. */
+  @media (prefers-reduced-motion:reduce){
+    .x-pin{height:auto!important}
+    .x-stick{position:relative;height:auto;padding:90px 0}
+    .x-hero .x-stick{min-height:88vh}
+    .x-px,.x-cursor,.x-disc,.x-bar{display:none!important}
+    .x-line,.x-track,.x-card,.x-shot img{transform:none!important}
+    .x-track{flex-wrap:wrap}
+    .x-gal-stage{position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;padding:0 4vw}
+    .x-shot{position:relative;aspect-ratio:4/3;clip-path:none!important}
+    .x-gal-cap{position:relative;color:inherit;text-shadow:none;margin-top:18px}
+    .x-window{clip-path:none!important}
+    .x-step{opacity:1}
+    .x-rise{opacity:1;transform:none;transition:none}
+  }
+</style>
+</head>
+<body data-tone="carta">
+${sellBanner}
+<div class="x-cursor" id="xCursor" aria-hidden="true"></div>
+<header class="x-head" id="xHead" data-tone="carta">
+  <div class="x-head-in">
+    <span class="x-logo">${name}</span>
+    ${nav ? `<nav>${nav}</nav>` : ""}
+    ${ctaBtn}
+  </div>
+</header>
+<main>
+<section class="x-pin x-hero x-tone" id="xHero" data-tone="carta" style="height:260vh">
+  <div class="x-stick">
+    <canvas class="x-px" id="xPx" aria-hidden="true"></canvas>
+    <div class="x-ring" id="xRing" aria-hidden="true"><div class="x-ring-o"></div><div class="x-ring-i"></div><div class="x-disc" id="xDisc"></div></div>
+    <div class="x-hero-in" id="xHeroIn">
+      <p class="x-eyebrow">${escapeHtml(label)}${city ? ` · ${city}` : ""}</p>
+      <h1 class="x-title">${titleHtml}</h1>
+      <div class="x-hero-foot"><p>${escapeHtml(input.copy)}</p>${ctaBtn}</div>
+    </div>
+  </div>
+</section>
+${[mf, sv, gal, num, dove, rec, pr, faq, fin].filter(Boolean).join("\n")}
+</main>
+<footer class="x-foot">
+  <span><b>${name}</b>${address ? ` · ${address}` : ""}</span>
+  <span>Sito demo · nessun cookie, nessun tracciamento</span>
+</footer>
+${vendBlock}
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var root = document.documentElement;
+  var head = document.getElementById('xHead');
+  var counts = [].slice.call(document.querySelectorAll('.x-count'));
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function ease(t) { return 1 - Math.pow(1 - t, 3); }
+  function fmt(el, v) { el.textContent = el.dataset.target.indexOf('.') !== -1 ? v.toFixed(1) : String(Math.round(v)); }
+
+  // Recensioni e domande entrano da sole, senza scroll pilotato.
+  var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }); }, { threshold: 0.15 });
+  [].forEach.call(document.querySelectorAll('.x-rise'), function (el) { io.observe(el); });
+
+  if (reduced) {
+    counts.forEach(function (el) { fmt(el, parseFloat(el.dataset.target)); });
+    [].forEach.call(document.querySelectorAll('.x-w'), function (w) { w.classList.add('on'); });
+    [].forEach.call(document.querySelectorAll('.x-step'), function (s) { s.classList.add('done'); });
+    return;
+  }
+
+  // Cursore ad anello: insegue il mouse con un piccolo ritardo.
+  var cur = document.getElementById('xCursor');
+  if (window.matchMedia('(pointer: fine)').matches) {
+    var mx = -100, my = -100, cx = -100, cy = -100;
+    window.addEventListener('mousemove', function (e) { mx = e.clientX; my = e.clientY; }, { passive: true });
+    document.addEventListener('mouseover', function (e) { cur.classList.toggle('big', !!(e.target.closest && e.target.closest('a,button,summary,.x-card'))); });
+    (function loop() { cx += (mx - cx) * 0.18; cy += (my - cy) * 0.18; cur.style.transform = 'translate(' + cx + 'px,' + cy + 'px)'; requestAnimationFrame(loop); })();
+  }
+
+  var hero = document.getElementById('xHero');
+  var heroIn = document.getElementById('xHeroIn');
+  var ring = document.getElementById('xRing');
+  var disc = document.getElementById('xDisc');
+  var cvs = document.getElementById('xPx');
+  var g = cvs.getContext('2d');
+  var lines = [].slice.call(document.querySelectorAll('.x-line'));
+  var pins = [].slice.call(document.querySelectorAll('.x-pin'));
+  var tones = [].slice.call(document.querySelectorAll('.x-tone'));
+  var win = document.querySelector('.x-winsec');
+  var winEl = win ? win.querySelector('.x-window') : null;
+  var INK = [4, 17, 31], GREY = [150, 162, 178];
+
+  // Quadratini dell'esplosione: disposti con l'angolo aureo e parametri
+  // derivati dall'indice, così il disegno è uguale a ogni caricamento.
+  var PAL = ['${blu}', '${ciano}', '#ffffff', '#9fb3c8', '#5aa9ff'];
+  var P = [];
+  for (var i = 0; i < 260; i++) {
+    P.push({ a: i * 2.39996, sp: 0.35 + ((i * 53) % 100) / 110, sz: 2 + ((i * 29) % 11), c: PAL[i % PAL.length], d: ((i * 17) % 100) / 100 });
+  }
+  function sizeCanvas() { var r = window.devicePixelRatio || 1; cvs.width = cvs.clientWidth * r; cvs.height = cvs.clientHeight * r; g.setTransform(r, 0, 0, r, 0, 0); }
+  sizeCanvas();
+
+  function prog(el) { var r = el.getBoundingClientRect(); var t = el.offsetHeight - window.innerHeight; return t > 0 ? clamp(-r.top / t, 0, 1) : (r.top < 0 ? 1 : 0); }
+
+  var raf = null;
+  function req() { if (!raf) raf = requestAnimationFrame(update); }
+  window.addEventListener('scroll', req, { passive: true });
+  window.addEventListener('resize', function () { sizeCanvas(); req(); });
+  update();
+
+  function update() {
+    raf = null;
+    var vw = window.innerWidth, vh = window.innerHeight;
+
+    // 1. Apertura: il titolo si comprime e si apre, l'anello diventa un portale.
+    var p = prog(hero);
+    root.style.setProperty('--wdth', (125 - ease(p) * 70).toFixed(1));
+    var grey = clamp(p * 1.6, 0, 1);
+    var col = 'rgb(' + INK.map(function (c, k) { return Math.round(c + (GREY[k] - c) * grey); }).join(',') + ')';
+    for (var l = 0; l < lines.length; l++) {
+      lines[l].style.transform = 'translateX(' + (parseFloat(lines[l].dataset.dir) * ease(p) * 34).toFixed(2) + 'vw)';
+      lines[l].style.color = col;
+    }
+    ring.style.left = (72 - ease(clamp(p * 1.5, 0, 1)) * 22) + '%';
+    ring.style.transform = 'translate(-50%,-50%) scale(' + (1 + p * 0.25).toFixed(3) + ')';
+    var dp = clamp((p - 0.3) / 0.5, 0, 1);
+    var cover = Math.hypot(vw, vh) / Math.max(1, ring.offsetWidth * 0.72) * 1.15;
+    disc.style.transform = 'scale(' + (ease(dp) * cover).toFixed(3) + ')';
+    heroIn.style.opacity = String(1 - clamp((p - 0.36) / 0.22, 0, 1));
+
+    g.clearRect(0, 0, cvs.clientWidth, cvs.clientHeight);
+    var pp = clamp((p - 0.06) / 0.94, 0, 1);
+    if (pp > 0 && pp < 1) {
+      var rr = ring.getBoundingClientRect(), cr = cvs.getBoundingClientRect();
+      var ox = rr.left + rr.width / 2 - cr.left, oy = rr.top + rr.height / 2 - cr.top;
+      var maxD = Math.hypot(vw, vh) * 0.75;
+      for (var k = 0; k < P.length; k++) {
+        var q = P[k];
+        var t = clamp((pp - q.d * 0.35) / 0.65, 0, 1);
+        if (t <= 0) continue;
+        var dist = rr.width * 0.4 + ease(t) * maxD * q.sp;
+        g.globalAlpha = Math.min(1, t * 4) * (1 - t * t * t);
+        g.fillStyle = q.c;
+        g.fillRect(ox + Math.cos(q.a) * dist - q.sz / 2, oy + Math.sin(q.a) * dist - q.sz / 2, q.sz, q.sz);
+      }
+      g.globalAlpha = 1;
+    }
+
+    // 2. Le altre sezioni bloccate.
+    for (var s = 0; s < pins.length; s++) {
+      var pin = pins[s];
+      if (pin === hero) continue;
+      var pr = prog(pin);
+
+      var ws = pin.querySelectorAll('.x-w');
+      if (ws.length) { var lit = Math.floor(clamp(pr * 1.15, 0, 1) * ws.length); for (var w = 0; w < ws.length; w++) ws[w].classList.toggle('on', w < lit); }
+
+      var track = pin.querySelector('.x-track');
+      if (track) {
+        var maxX = Math.max(0, track.scrollWidth - vw);
+        track.style.transform = 'translate3d(' + (-pr * maxX).toFixed(1) + 'px,0,0)';
+        for (var c = 0; c < track.children.length; c++) {
+          var card = track.children[c], cb = card.getBoundingClientRect();
+          var dd = ((cb.left + cb.width / 2) - vw / 2) / vw;
+          card.style.transform = 'perspective(1100px) rotateY(' + clamp(-dd * 55, -30, 30).toFixed(2) + 'deg) scale(' + (1 - Math.min(Math.abs(dd), 0.6) * 0.14).toFixed(3) + ')';
+        }
+        var bar = pin.querySelector('.x-bar i');
+        if (bar) bar.style.width = (pr * 100).toFixed(1) + '%';
+      }
+
+      var shots = pin.querySelectorAll('.x-shot');
+      if (shots.length) {
+        var n = shots.length, top = 0;
+        for (var h = 0; h < n; h++) {
+          var e = h === 0 ? 1 : clamp((pr * n - h + 0.3) / 0.7, 0, 1);
+          var ins = (1 - ease(e)) * 50;
+          shots[h].style.clipPath = 'inset(' + ins.toFixed(2) + '% ' + ins.toFixed(2) + '% round ' + ((1 - e) * 40).toFixed(1) + 'px)';
+          var z = h === 0 ? 1.25 - clamp(pr * n, 0, 1) * 0.25 : 1.3 - ease(e) * 0.3;
+          shots[h].firstChild.style.transform = 'scale(' + z.toFixed(3) + ')';
+          if (e > 0.5) top = h;
+        }
+        var gn = pin.querySelector('.x-gal-n');
+        if (gn) gn.textContent = (top + 1 < 10 ? '0' : '') + (top + 1);
+        var gt = pin.querySelector('.x-gal-t');
+        if (gt) gt.textContent = (n < 10 ? '0' : '') + n;
+      }
+
+      var cs = pin.querySelectorAll('.x-count');
+      for (var k2 = 0; k2 < cs.length; k2++) fmt(cs[k2], parseFloat(cs[k2].dataset.target) * ease(clamp(pr * 1.6, 0, 1)));
+
+      var st = pin.querySelectorAll('.x-step');
+      if (st.length) {
+        var act = Math.min(st.length - 1, Math.floor(pr * st.length * 1.05));
+        for (var z2 = 0; z2 < st.length; z2++) { st[z2].classList.toggle('on', z2 === act); st[z2].classList.toggle('done', z2 < act); }
+        var li = pin.querySelector('.x-steps-line i');
+        if (li) li.style.height = (clamp(pr * 1.1, 0, 1) * 100).toFixed(1) + '%';
+      }
+
+      var ft = pin.querySelector('.x-fin-t');
+      if (ft) ft.style.setProperty('--fw', (60 + ease(clamp(pr * 1.4, 0, 1)) * 65).toFixed(1));
+    }
+
+    // 3. La finestra sui contatti si spalanca entrando.
+    if (winEl) {
+      var wr = win.getBoundingClientRect();
+      var wi = 1 - ease(clamp((vh - wr.top) / (vh * 0.85), 0, 1));
+      winEl.style.clipPath = 'inset(' + (wi * 12).toFixed(2) + '% ' + (wi * 9).toFixed(2) + '% round ' + (wi * 56).toFixed(1) + 'px)';
+    }
+
+    // 4. Tono dell'header (e del cursore): quello della sezione sotto.
+    var hb = head.getBoundingClientRect().bottom;
+    var tone = 'carta';
+    for (var t2 = 0; t2 < tones.length; t2++) { var tr = tones[t2].getBoundingClientRect(); if (tr.top <= hb && tr.bottom > hb) tone = tones[t2].dataset.tone; }
+    if (hero.getBoundingClientRect().bottom > hb && ease(dp) > 0.55) tone = 'ink';
+    head.dataset.tone = tone;
+    document.body.dataset.tone = tone;
+  }
+})();
 </script>
 </body>
 </html>`;

@@ -5,11 +5,11 @@
 
 import type { Category } from "./types";
 
-// Cinque identità visive, non cinque varianti dello stesso motore: ognuna ha
-// la sua palette, la sua tipografia e le sue meccaniche di scroll. Le
-// descrizioni e le mappature qui sotto sono la specifica ricevuta com'è,
-// categoria per categoria — non un adattamento libero.
-export type DemoStyleKey = "svizzero" | "clinico" | "industriale" | "fotografico" | "boutique";
+// Sei identità visive, non varianti dello stesso motore: ognuna ha la sua
+// palette, la sua tipografia e le sue meccaniche di scroll. Le prime cinque
+// seguono la specifica ricevuta, categoria per categoria; "innovativo" è
+// una scelta libera del wizard e non è il tema di nessuna categoria.
+export type DemoStyleKey = "svizzero" | "clinico" | "industriale" | "fotografico" | "boutique" | "innovativo";
 
 export interface DemoStyleDef {
   key: DemoStyleKey;
@@ -22,6 +22,7 @@ export const DEMO_STYLES: DemoStyleDef[] = [
   { key: "clinico", label: "Clinico caldo", description: "Neutri caldi, verde salvia o terracotta, angoli morbidi, molto respiro. Animazioni minime e lente: calma, non spettacolo. Prenotazione sempre a vista — sanitari, veterinari, toelettature." },
   { key: "industriale", label: "Industriale alto contrasto", description: "Nero pieno, un accento saturo, condensato maiuscolo, tagli diagonali. Ticker in movimento, numeri grandi, energia immediata — artigiani, palestre, scuole." },
   { key: "fotografico", label: "Editoriale fotografico", description: "La foto è il contenuto: hero a schermo pieno, zoom lentissimo, serif su fondo scuro. Serve poco testo e foto buone — ristoranti, pizzerie, B&B, agriturismi." },
+  { key: "innovativo", label: "Innovativo", description: "Tutto guidato dallo scroll: titolo enorme che si comprime, un anello che diventa un portale, pixel che esplodono, servizi inclinati in 3D, cursore ad anello. Per chi vuole stupire — qualunque categoria." },
   { key: "boutique", label: "Boutique minimale", description: "Crema o nero opaco, un solo accento metallico, tanto vuoto, ritmo rallentato. Testo che sale una riga alla volta — barbieri, estetisti, nail bar." },
 ];
 

@@ -9,16 +9,22 @@ import {
   DEMO_STYLES,
   DEMO_SECTIONS,
   DEFAULT_SECTION_KEYS,
+  CATEGORY_THEME,
   shortenSiteTitle,
   deriveShades,
   googleReviewsUrl,
   resolveSections,
 } from "./demoOptions";
 
-test("gli stili sono cinque, ognuno con una chiave unica", () => {
-  assert.equal(DEMO_STYLES.length, 5);
+test("gli stili sono sei, ognuno con una chiave unica", () => {
+  assert.equal(DEMO_STYLES.length, 6);
   const chiavi = new Set(DEMO_STYLES.map((s) => s.key));
-  assert.equal(chiavi.size, 5);
+  assert.equal(chiavi.size, 6);
+});
+
+test("Innovativo si sceglie solo nel wizard: non è il tema di nessuna categoria", () => {
+  assert.ok(DEMO_STYLES.some((s) => s.key === "innovativo"));
+  assert.ok(!Object.values(CATEGORY_THEME).includes("innovativo" as never));
 });
 
 test("le sezioni sono almeno dieci, ognuna con una chiave unica", () => {
