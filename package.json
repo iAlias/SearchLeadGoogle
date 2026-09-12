@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "description": "Trova attivita locali, genera demo personalizzate, contatta via email + WhatsApp",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
