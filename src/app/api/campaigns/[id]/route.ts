@@ -15,11 +15,28 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json(campaign);
 }
 
-// Re-scan della campagna.
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+// Rilancio della campagna, oppure richiesta di fermarla.
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const body = await req.json().catch(() => ({}));
+  const action = String(body.action || "rerun");
+
   const campaign = await prisma.campaign.findUnique({ where: { id } });
   if (!campaign) return NextResponse.json({ error: "Non trovata" }, { status: 404 });
+
+  if (action === "cancel") {
+    if (campaign.status !== "running") {
+      return NextResponse.json({ error: "Questa ricerca non è in corso" }, { status: 400 });
+    }
+    // La ricerca si ferma al primo controllo utile: interrompere una fetch a
+    // metà lascerebbe dati a pezzi.
+    await prisma.campaign.update({ where: { id }, data: { cancelRequested: true } });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (campaign.status === "running") {
+    return NextResponse.json({ error: "È già in corso" }, { status: 409 });
+  }
 
   runCampaign(id).catch((e) => console.error("rerun error:", e));
   return NextResponse.json({ ok: true });

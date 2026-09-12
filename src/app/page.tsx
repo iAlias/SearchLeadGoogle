@@ -11,17 +11,23 @@ interface Campaign {
   engine: string;
   status: string;
   error?: string | null;
+  foundCount: number;
+  processedCount: number;
   createdAt: string;
   _count?: { leads: number };
 }
 
 interface Stats {
   campaigns: number; total: number; withEmail: number; withPhone: number;
-  emailSent: number; replied: number; won: number;
+  emailSent: number; opened: number; replied: number; won: number; suppressed: number;
 }
 
 const STATUS_TAG: Record<string, string> = {
-  pending: "gray", running: "blue", done: "good", failed: "none",
+  pending: "gray", running: "blue", done: "good", failed: "none", cancelled: "gray",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: "in attesa", running: "in corso", done: "completata", failed: "interrotta", cancelled: "annullata",
 };
 
 export default function Home() {
@@ -53,7 +59,7 @@ export default function Home() {
     e.preventDefault();
     setErr("");
     if (!businessType.trim() || !location.trim()) {
-      setErr("Inserisci tipo di attivita e luogo.");
+      setErr("Inserisci tipo di attività e luogo.");
       return;
     }
     setCreating(true);
@@ -73,6 +79,21 @@ export default function Home() {
     } finally {
       setCreating(false);
     }
+  }
+
+  async function azione(id: string, action: "cancel" | "rerun") {
+    await fetch(`/api/campaigns/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    await load();
+  }
+
+  function avanzamento(c: Campaign): string {
+    if (c.status !== "running") return "";
+    if (!c.foundCount) return "cerco le attività…";
+    return `${c.processedCount}/${c.foundCount} controllate`;
   }
 
   return (
@@ -131,8 +152,9 @@ export default function Home() {
         <div className="cards" style={{ marginBottom: 26 }}>
           <div className="stat"><div className="n">{stats.total}</div><div className="l">Lead totali</div></div>
           <div className="stat"><div className="n">{stats.withEmail}</div><div className="l">Con email</div></div>
-          <div className="stat"><div className="n">{stats.withPhone}</div><div className="l">Con WhatsApp</div></div>
           <div className="stat"><div className="n">{stats.emailSent}</div><div className="l">Contattati</div></div>
+          <div className="stat"><div className="n">{stats.opened}</div><div className="l">Hanno aperto</div></div>
+          <div className="stat"><div className="n">{stats.replied}</div><div className="l">Hanno risposto</div></div>
           <div className="stat"><div className="n">{stats.won}</div><div className="l">Clienti 🎉</div></div>
         </div>
       )}
@@ -153,17 +175,27 @@ export default function Home() {
                 <tr key={c.id}>
                   <td>
                     <Link href={`/leads?campaignId=${c.id}`}><b>{c.businessType}</b> · {c.location}</Link>
-                    {c.error && <div className="muted" style={{ fontSize: ".78rem", color: "var(--red)" }}>{c.error}</div>}
+                    {c.error && <div style={{ fontSize: ".78rem", color: "var(--red)" }}>{c.error}</div>}
                   </td>
                   <td>
                     <span className={`tag ${STATUS_TAG[c.status] || "gray"}`}>
                       {c.status === "running" && <span className="spinner" style={{ marginRight: 5 }} />}
-                      {c.status}
+                      {STATUS_LABEL[c.status] || c.status}
                     </span>
+                    {c.status === "running" && (
+                      <div className="muted" style={{ fontSize: ".76rem", marginTop: 4 }}>{avanzamento(c)}</div>
+                    )}
                   </td>
                   <td>{c._count?.leads ?? 0}</td>
                   <td className="muted">{c.engine}</td>
                   <td className="right">
+                    {c.status === "running" ? (
+                      <button className="btn ghost sm" onClick={() => azione(c.id, "cancel")}>Ferma</button>
+                    ) : (
+                      <button className="btn ghost sm" onClick={() => azione(c.id, "rerun")} title="Ricontrolla siti, email e punteggi">
+                        ↻ Aggiorna
+                      </button>
+                    )}{" "}
                     <Link className="btn ghost sm" href={`/leads?campaignId=${c.id}`}>Apri →</Link>
                   </td>
                 </tr>

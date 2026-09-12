@@ -107,7 +107,7 @@ export function generateDemoHtml(input: DemoInput): string {
     : "";
 
   // Per un veterinario, in un'emergenza si chiama, non si scrive. Diamo
-  // priorita' alla telefonata solo se il numero c'e' davvero.
+  // priorità alla telefonata solo se il numero c'è davvero.
   const phoneFirst = input.category === "veterinario" && !!tel;
 
   const sellerHref = sellerWa

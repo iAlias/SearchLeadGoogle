@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { runCampaign } from "@/lib/scrape";
+import { runCampaign, recoverStaleCampaigns } from "@/lib/scrape";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Chi apre la lista è il primo ad accorgersi che una campagna è morta con
+  // il server: qui la si chiude, invece di lasciarla girare per finta.
+  await recoverStaleCampaigns();
+
   const campaigns = await prisma.campaign.findMany({
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { leads: true } } },

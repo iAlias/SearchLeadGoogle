@@ -8,63 +8,85 @@ datasource db {
 }
 
 model Campaign {
-  id           String   @id @default(cuid())
+  id           String  @id @default(cuid())
   name         String
   businessType String
   location     String
-  engine       String   @default("auto") // auto | places | scrape
-  status       String   @default("pending") // pending | running | done | failed
+  engine       String  @default("auto") // auto | places | scrape
+  status       String  @default("pending") // pending | running | done | failed | cancelled
   error        String?
-  targetCount  Int      @default(60)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  leads        Lead[]
+  targetCount  Int     @default(60)
+
+  // Avanzamento e sopravvivenza al riavvio: una campagna che gira senza dare
+  // segni di vita da qualche minuto è un processo morto, non una in corso.
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  heartbeatAt     DateTime?
+  foundCount      Int       @default(0)
+  processedCount  Int       @default(0)
+  cancelRequested Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  leads     Lead[]
 }
 
 model Lead {
-  id              String    @id @default(cuid())
-  campaignId      String
-  campaign        Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-  placeId         String?   @unique
-  name            String
-  category        String    @default("generico")
-  address         String?
-  city            String?
-  phone           String?
-  phoneWa         String?   // numero normalizzato per WhatsApp (39xxxxxxxxxx)
-  email           String?
-  emailSource     String?   // scraped | mailto | guessed | none
-  website         String?
-  websiteStatus   String    @default("none") // none | bad | good
-  rating          Float?
-  reviewCount     Int       @default(0)
-  photos          String    @default("[]")   // JSON array di URL
-  hours           String?   // JSON
-  topReviews      String    @default("[]")    // JSON array
-  lat             Float?
-  lng             Float?
+  placeId        String? @unique
+  name           String
+  category       String  @default("generico")
+  address        String?
+  city           String?
+  phone          String?
+  phoneWa        String? // numero normalizzato per WhatsApp (39xxxxxxxxxx)
+  email          String?
+  emailSource    String? // scraped | mailto | guessed | manual | none
+  website        String?
+  websiteStatus  String  @default("none") // none | bad | good
+  websiteReasons String  @default("[]") // JSON array: perché il sito è stato giudicato così
+  rating         Float?
+  reviewCount    Int     @default(0)
+  photos         String  @default("[]") // JSON array di URL (mai contenenti chiavi API)
+  hours          String? // JSON
+  topReviews     String  @default("[]") // JSON array
+  lat            Float?
+  lng            Float?
+
+  // Quanto vale come lead: calcolato allo scraping, è l'ordine in cui i lead
+  // vanno guardati. Chi non ha un sito viene prima di chi ce l'ha buono.
+  leadScore Int @default(0)
 
   outreachChannel String    @default("email_and_wa") // email_and_wa | whatsapp_only | email_only | none
   demoSlug        String?   @unique
-  demoHtml        String?   // HTML completo della demo, generato
-  demoOptions     String?   // JSON: scelte del wizard (stile, sezioni, titolo, menu, colore)
+  demoHtml        String? // HTML completo della demo, generato
+  demoOptions     String? // JSON: scelte del wizard (stile, sezioni, titolo, menu, colore)
   demoGeneratedAt DateTime?
 
-  status          String    @default("scraped") // scraped | demo_ready | approved | email_sent | wa_sent | replied | won | lost | skipped
-  emailSentAt     DateTime?
-  emailOpenedAt   DateTime?
-  waSentAt        DateTime?
-  repliedAt       DateTime?
-  repliedVia      String?
-  outcome         String?
-  notes           String?
+  status         String    @default("scraped") // scraped | demo_ready | approved | email_sent | wa_sent | replied | won | lost | skipped
+  emailSentAt    DateTime?
+  emailId        String? // id del messaggio Resend, per riconoscere i webhook
+  emailOpenedAt  DateTime?
+  emailBouncedAt DateTime?
+  waSentAt       DateTime?
+  repliedAt      DateTime?
+  repliedVia     String?
+  replyText      String?
+  outcome        String?
+  notes          String?
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([campaignId])
   @@index([status])
+  @@index([leadScore])
+  @@index([email])
+  @@index([phoneWa])
+  @@index([emailId])
 }
 
 // Chi ha chiesto di non essere più contattato. Vale per sempre, su ogni
@@ -73,26 +95,75 @@ model Lead {
 model Suppression {
   id        String   @id @default(cuid())
   contact   String   @unique // email in minuscolo, o numero normalizzato 39xxxxxxxxxx
-  channel   String   // email | whatsapp
-  reason    String   @default("richiesta") // richiesta | rifiuto | bounce
+  channel   String // email | whatsapp
+  reason    String   @default("richiesta") // richiesta | rifiuto | bounce | reclamo
   createdAt DateTime @default(now())
 }
 
+// Registro di cosa è stato fatto a chi. Serve a due cose che il singolo
+// timestamp sul lead non copre: dimostrare, se qualcuno contesta, quando e
+// come è stato contattato, e capire dove si inceppa la pipeline.
+model Event {
+  id        String   @id @default(cuid())
+  leadId    String?
+  type      String // email_sent | email_opened | email_bounced | email_complained | wa_sent | replied | suppressed | skipped | error
+  channel   String? // email | whatsapp
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// Un giro di invii. Vive più a lungo di una richiesta HTTP (i messaggi
+// WhatsApp sono distanziati di 30-90 secondi l'uno dall'altro), quindi lo
+// stato sta qui e la pagina lo interroga, invece di aspettare la risposta.
+model OutreachRun {
+  id              String    @id @default(cuid())
+  state           String    @default("running") // running | done | failed | cancelled
+  trigger         String    @default("manuale") // manuale | cron
+  emailsSent      Int       @default(0)
+  waSent          Int       @default(0)
+  skipped         Int       @default(0)
+  planned         Int       @default(0)
+  // Pronti ma rimandati a domani dal limite giornaliero: non sono scarti.
+  queued          Int       @default(0)
+  errors          String    @default("[]") // JSON array di stringhe
+  currentLead     String?
+  cancelRequested Boolean   @default(false)
+  startedAt       DateTime  @default(now())
+  heartbeatAt     DateTime?
+  finishedAt      DateTime?
+
+  @@index([state])
+  @@index([startedAt])
+}
+
 model Settings {
-  id            String   @id @default("singleton")
+  id             String @id @default("singleton")
   // Vuoto e non "Antonio": un nome finto lasciato per sbaglio nell'email
   // manderebbe un messaggio firmato da chi non esiste.
-  sellerName    String   @default("")
-  sellerPhone   String   @default("")
-  emailFrom     String   @default("")
-  emailSubject  String   @default("Ho preparato il sito di {{nome}} - guarda qui")
-  emailBody     String   @default("")
-  waBody        String   @default("")
+  sellerName     String @default("")
+  sellerPhone    String @default("")
+  sellerEmail    String @default("") // titolare del trattamento, mostrato nell'informativa
+  emailFrom      String @default("")
+  emailSubject   String @default("Ho preparato il sito di {{nome}} - guarda qui")
+  emailBody      String @default("")
+  waBody         String @default("")
   // 10-15 al giorno: sopra questa soglia un dominio nuovo finisce in
   // blacklist, e brucia l'indirizzo per sempre.
-  dailyEmailMax Int      @default(12)
-  dailyWaMax    Int      @default(20)
-  waFollowupDays Int     @default(4)
-  priceLine     String   @default("149 euro")
-  updatedAt     DateTime @updatedAt
+  dailyEmailMax  Int    @default(12)
+  dailyWaMax     Int    @default(20)
+  waFollowupDays Int    @default(4)
+  priceLine      String @default("149 euro")
+
+  // Chiave con cui si firmano i link di disiscrizione. Generata da sola alla
+  // prima esecuzione: un link di disiscrizione non deve dipendere da una
+  // variabile d'ambiente che qualcuno può dimenticare di impostare.
+  secret        String @default("")
+  // Dopo quanti giorni un lead mai contattato viene cancellato.
+  retentionDays Int    @default(180)
+
+  updatedAt DateTime @updatedAt
 }

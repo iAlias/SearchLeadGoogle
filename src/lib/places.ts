@@ -1,5 +1,6 @@
 import type { RawLead, Review, OpeningPeriod } from "./types";
 import { cityFromAddress } from "./utils";
+import { isValidPhotoRef, photoProxyUrl } from "./photos";
 
 // Client per la nuova Places API di Google (places.googleapis.com/v1).
 // Restituisce lead strutturati: nome, indirizzo, telefono, sito, rating, foto, orari, recensioni.
@@ -50,14 +51,13 @@ interface GooglePlace {
   location?: { latitude?: number; longitude?: number };
 }
 
-function mapPlace(p: GooglePlace, apiKey: string): RawLead {
+function mapPlace(p: GooglePlace): RawLead {
+  // Mai l'URL diretto di Google: conterrebbe la chiave API, e finirebbe
+  // scritto nell'HTML di una demo pubblica. Si salva l'indirizzo del proxy,
+  // che la chiave la tiene sul server.
   const photos: string[] = (p.photos || [])
     .slice(0, 5)
-    .map((ph) =>
-      ph.name
-        ? `https://places.googleapis.com/v1/${ph.name}/media?maxHeightPx=900&maxWidthPx=1600&key=${apiKey}`
-        : ""
-    )
+    .map((ph) => (ph.name && isValidPhotoRef(ph.name) ? photoProxyUrl(ph.name) : ""))
     .filter(Boolean);
 
   const topReviews: Review[] = (p.reviews || [])
@@ -138,7 +138,7 @@ export async function searchPlaces(
       throw new Error(`Places API: ${msg}`);
     }
 
-    for (const place of data.places || []) out.push(mapPlace(place, apiKey));
+    for (const place of data.places || []) out.push(mapPlace(place));
 
     pageToken = data.nextPageToken;
     guard++;

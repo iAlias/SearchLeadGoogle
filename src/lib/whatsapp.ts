@@ -84,6 +84,13 @@ export async function initWhatsApp(): Promise<void> {
         store.client = null;
       });
 
+      // Le risposte in arrivo. Senza questo il follow-up parte anche a chi
+      // ha già scritto "no grazie", e la promessa fatta nell'email resta
+      // una frase gentile senza niente dietro.
+      client.on("message", (msg: any) => {
+        void gestisciMessaggio(msg);
+      });
+
       store.client = client;
       await client.initialize();
     } catch (e) {
@@ -130,4 +137,30 @@ export async function sendWhatsApp(phoneWa: string, message: string): Promise<{ 
 
 export function isWaReady(): boolean {
   return store.state === "ready";
+}
+
+/**
+ * Un messaggio in arrivo da una chat privata. I gruppi, gli stati e i
+ * messaggi inviati da noi non sono risposte e vanno ignorati: solo il
+ * mittente vero conta.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function gestisciMessaggio(msg: any): Promise<void> {
+  try {
+    const from: string = String(msg?.from || "");
+    if (!from.endsWith("@c.us")) return; // gruppo, canale o stato
+    if (msg?.fromMe) return;
+    const testo: string = String(msg?.body || "").trim();
+    if (!testo) return;
+
+    const numero = from.replace("@c.us", "").replace(/\D/g, "");
+    if (!numero) return;
+
+    // Import differito: tiene fuori il database dal percorso di avvio del
+    // client, che deve poter partire anche se il resto non è pronto.
+    const { handleInbound } = await import("./inbound");
+    await handleInbound({ from: numero, channel: "whatsapp", text: testo });
+  } catch (e) {
+    console.error("wa inbound:", (e as Error).message);
+  }
 }

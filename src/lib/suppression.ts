@@ -10,6 +10,7 @@ import { prisma } from "./db";
 import { normalizePhoneIt } from "./utils";
 
 export type SuppressionChannel = "email" | "whatsapp";
+export type SuppressionReason = "richiesta" | "rifiuto" | "bounce" | "reclamo";
 
 // Porta email e numeri di telefono a una forma unica, così due modi diversi
 // di scrivere lo stesso contatto (maiuscole, spazi, prefisso internazionale)
@@ -43,7 +44,7 @@ export async function isSuppressed(
 export async function addSuppression(
   raw: string,
   channel: SuppressionChannel,
-  reason: "richiesta" | "rifiuto" | "bounce" = "richiesta"
+  reason: SuppressionReason = "richiesta"
 ): Promise<void> {
   const contact = normalizeContact(raw, channel);
   if (!contact) return;

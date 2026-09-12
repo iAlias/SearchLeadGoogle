@@ -60,7 +60,7 @@ test("deriva un'intera palette da un solo colore primario", () => {
   assert.ok(/^#[0-9a-f]{6}$/.test(p.accent));
 });
 
-test("il colore derivato 'deep' e' piu' scuro del primario", () => {
+test("il colore derivato 'deep' è più scuro del primario", () => {
   const p = deriveShades("#2F6F62");
   const luma = (hex: string) => {
     const n = parseInt(hex.slice(1), 16);

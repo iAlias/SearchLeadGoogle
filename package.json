@@ -11,7 +11,8 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "postinstall": "prisma generate",
-    "test": "tsx --test src/lib/**/*.test.ts"
+    "test": "tsx --test src/lib/**/*.test.ts",
+    "db:backfill": "tsx scripts/backfill.mts"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
