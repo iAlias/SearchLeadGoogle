@@ -1,0 +1,41 @@
+name: CI
+
+# Il controllo che qui gira a mano prima di ogni push, fatto girare da solo.
+# Serve soprattutto per le pull request: dice se il ramo compila e se i test
+# passano prima che qualcuno legga il codice.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verifica:
+    runs-on: ubuntu-latest
+
+    env:
+      # Prisma vuole la variabile anche solo per generare il client: qui punta
+      # a un file usa e getta, nessun database vero serve per tipi, test e build.
+      DATABASE_URL: "file:./ci.db"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci` rispetta il lockfile: installa esattamente le versioni con cui
+      # è stato verificato il progetto, non le più recenti compatibili.
+      - name: Installazione
+        run: npm ci
+
+      - name: Tipi
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
