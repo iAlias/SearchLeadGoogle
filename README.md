@@ -4,7 +4,7 @@
 
 **Trova le attività locali senza un sito decente, costruisce per ognuna una demo con i loro dati veri, e le contatta.**
 
-[![CI](https://github.com/iAlias/search-lead-google/actions/workflows/ci.yml/badge.svg)](https://github.com/iAlias/search-lead-google/actions/workflows/ci.yml)
+[![CI](https://github.com/iAlias/SearchLeadGoogle/actions/workflows/ci.yml/badge.svg)](https://github.com/iAlias/SearchLeadGoogle/actions/workflows/ci.yml)
 [![Licenza MIT](https://img.shields.io/badge/licenza-MIT-1f3a4d)](LICENSE)
 [![Node ≥ 20](https://img.shields.io/badge/node-%E2%89%A5%2020-3c873a)](package.json)
 [![Next.js 15](https://img.shields.io/badge/Next.js-15-000000)](https://nextjs.org)
